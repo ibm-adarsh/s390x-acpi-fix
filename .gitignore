@@ -1,0 +1,24 @@
+# Compiled library
+*.so
+*.o
+*.a
+
+# Test artifacts
+/tmp/
+*.qcow2
+*.xml
+*.log
+
+# Build artifacts
+libvirt-acpi-fix.so
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
