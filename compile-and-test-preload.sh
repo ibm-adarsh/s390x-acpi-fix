@@ -13,15 +13,55 @@ echo ""
 echo "Step 1: Installing build dependencies..."
 echo "-----------------------------------------"
 
-# Check if gcc and libvirt-devel are available
+# Check if gcc is available
 if ! command -v gcc &> /dev/null; then
     echo "Installing gcc..."
     dnf install -y gcc 2>&1 | tail -5
 fi
 
-if ! rpm -q libvirt-devel &> /dev/null; then
-    echo "Installing libvirt-devel..."
-    dnf install -y libvirt-devel 2>&1 | tail -5
+# Check for libvirt development headers
+# Try multiple package names (RHEL 9 uses different names)
+if ! rpm -q libvirt-devel &> /dev/null && ! rpm -q libvirt-libs &> /dev/null; then
+    echo "Installing libvirt development packages..."
+    
+    # Try libvirt-devel first (standard name)
+    if dnf install -y libvirt-devel 2>&1 | tail -5; then
+        echo "✅ Installed libvirt-devel"
+    else
+        # If that fails, try installing from available packages
+        echo "Trying alternative package names..."
+        
+        # Search for available libvirt packages
+        available_pkg=$(dnf list available 'libvirt*' 2>/dev/null | grep -E 'libvirt-devel|libvirt-libs' | head -1 | awk '{print $1}')
+        
+        if [[ -n "$available_pkg" ]]; then
+            echo "Found: $available_pkg"
+            dnf install -y "$available_pkg" 2>&1 | tail -5
+        else
+            echo "⚠️  Warning: Could not find libvirt-devel package"
+            echo "Attempting to compile without it (may fail)..."
+        fi
+    fi
+fi
+
+# Check if libvirt.h is available
+if [[ -f /usr/include/libvirt/libvirt.h ]]; then
+    echo "✅ libvirt headers found"
+elif [[ -f /usr/local/include/libvirt/libvirt.h ]]; then
+    echo "✅ libvirt headers found in /usr/local"
+else
+    echo "❌ libvirt headers not found!"
+    echo ""
+    echo "Manual installation required:"
+    echo "  1. Check available packages: dnf search libvirt"
+    echo "  2. Install development package: dnf install -y <package-name>"
+    echo ""
+    echo "Common package names:"
+    echo "  - libvirt-devel (RHEL/CentOS)"
+    echo "  - libvirt-dev (Debian/Ubuntu)"
+    echo "  - libvirt-libs (some RHEL 9 variants)"
+    echo ""
+    exit 1
 fi
 
 echo "✅ Build dependencies ready"
